@@ -1,0 +1,79 @@
+from selenium import webdriver
+import time
+import csv
+
+## 아랫 줄은 본인 컴퓨터에 올려진 PhantomJS 위치를 적어야 합니다.
+
+driver = webdriver.PhantomJS(executable_path='/Users/feelosopia/phantomjs-2.1.1-macosx/bin/phantomjs')
+
+def getting_kbo_data(year, month):
+    driver.get("http://www.koreabaseball.com/Schedule/Schedule.aspx")
+    time.sleep(5)
+    
+    driver.find_element_by_id('ddlYear').send_keys(year) ## 여기에 필요한 연도를 넣으면 됩니다! 
+    driver.find_element_by_id('ddlMonth').send_keys(month)
+    table = driver.find_element_by_css_selector("table")
+    
+    kbo_data = 'KBO_' + year + '_' + month + '.csv'
+    
+    with open(kbo_data , 'w', newline='') as csvfile:
+        wr = csv.writer(csvfile)
+        for row in table.find_elements_by_css_selector('tr'):
+            wr.writerow([d.text for d in row.find_elements_by_css_selector('td')])
+            
+            
+getting_kbo_data('2017', '06')
+print(getting_kbo_data)
+
+def cleaning_kbo_data(year, month):
+    
+    kbo_data = 'KBO_' + year + '_' + month + '.csv' # 함수 안에 있는 변수는, 이렇게 한번 다시 정의하지 않으면 실행되지 않는다.
+
+    with open(kbo_data,'rt') as fin:
+        cin = csv.reader(fin)
+        kbo = [row for row in cin]
+        
+    temp = []
+    for item in kbo:
+        if len(item) == 0:
+            print('항목이 없습니다.')
+        else:
+            if item[0][2] == '.':
+                print('날짜가 있습니다.')
+                
+                if len(temp) == 0:
+                    print('날짜 넣기!')
+                    temp.append(item[0])
+                    #print(temp[0])
+                else:
+                    temp.pop()
+                    print('날짜 교체!')
+                    temp.append(item[0])
+                    #print(temp[0])
+            else:
+                #print('날짜가 없습니다.')
+                #print(temp)
+                print(item[0][2])
+                try:
+                    item.insert(0,temp[0])
+                except:
+                    continue
+        #print(item)
+        
+    kbo.insert(0,['날짜','시간','경기','게임센터','하이라이트','TV','라디오','구장','비고'])
+    
+    with open(kbo_data,'wt') as fout:
+        csvOut = csv.writer(fout)
+        csvOut.writerows(kbo)
+        
+        
+    cleaning_kbo_data('2017', '06')
+    
+    years = ['2010', '2011', '2012', '2013', '2014', '2015', '2016', '2017']
+    months = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12']
+    
+   
+    for year in years:
+    for month in months:
+        getting_kbo_data(year, month)
+        cleaning_kbo_data(year, month)
